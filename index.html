@@ -19,9 +19,10 @@ header p{font-size:11px;color:var(--muted);margin-top:4px;font-family:'Share Tec
 .nav-btn svg{width:20px;height:20px;stroke-width:2;fill:none;stroke:currentColor;}
 .nav-btn.active{background:rgba(0,212,255,0.12);color:var(--accent);}
 .nav-btn.active svg{stroke:var(--accent);}
+.nav-btn.active{box-shadow:0 0 0 1px rgba(0,212,255,0.25),0 0 18px rgba(0,212,255,0.12) inset;}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+.card{background:linear-gradient(180deg,rgba(17,24,39,0.98),rgba(17,24,39,0.92));border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 14px 30px rgba(0,0,0,0.22);}
 .card-title{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);padding-bottom:8px;display:flex;align-items:center;gap:8px;}
 .card-title svg{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;}
 .wave-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
@@ -35,7 +36,8 @@ header p{font-size:11px;color:var(--muted);margin-top:4px;font-family:'Share Tec
 .wave-btn.active-saw svg{stroke:var(--a4);}
 .wave-btn.active-sq{border-color:var(--adanger);color:var(--adanger);background:rgba(244,63,94,0.1);}
 .wave-btn.active-sq svg{stroke:var(--adanger);}
-canvas{width:100%;border-radius:10px;background:#060c18;border:1px solid var(--border);display:block;}
+.wave-btn:hover,.mode-btn:hover,.nav-btn:hover{transform:translateY(-1px);}
+canvas{width:100%;border-radius:10px;background:radial-gradient(ellipse at center,#071022 0%,#050a16 70%);border:1px solid var(--border);display:block;}
 .slider-group{margin-bottom:16px;}
 .slider-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .slider-name{font-size:13px;color:var(--muted);}
@@ -105,7 +107,7 @@ footer{text-align:center;font-size:10px;color:var(--muted);padding:16px 0;font-f
           <svg viewBox="0 0 40 20"><polyline points="0,16 0,4 14,4 14,16 28,16 28,4 40,4"/></svg>Square
         </button>
       </div>
-      <canvas id="waveCanvas" height="160"></canvas>
+      <canvas id="waveCanvas" height="180"></canvas>
       <div class="stats-row">
         <div class="stat-box"><div class="stat-label">Period</div><div class="stat-value" id="statPeriod">—</div></div>
         <div class="stat-box"><div class="stat-label">Vpp</div><div class="stat-value" id="statVpp">—</div></div>
@@ -266,21 +268,23 @@ function updateWave(){
   document.getElementById('statVpp').textContent=(amp*2).toFixed(1)+' V';
   const rms=currentWave==='sine'?amp/Math.sqrt(2):currentWave==='tri'?amp/Math.sqrt(3):amp;
   document.getElementById('statRms').textContent=rms.toFixed(2)+' V';
-  document.getElementById('statType').textContent=currentWave.toUpperCase();
+  const typeLabel={sine:'SINE',tri:'TRIANGLE',saw:'SAWTOOTH',sq:'SQUARE'};
+  document.getElementById('statType').textContent=typeLabel[currentWave];
   const canvas=document.getElementById('waveCanvas');
   const dpr=window.devicePixelRatio||1;
-  canvas.width=canvas.offsetWidth*dpr;canvas.height=160*dpr;
+  canvas.width=canvas.offsetWidth*dpr;canvas.height=180*dpr;
   const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
-  const W=canvas.offsetWidth,H=160;
+  const W=canvas.offsetWidth,H=180;
   ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='rgba(0,212,255,0.06)';ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(0,212,255,0.09)';ctx.lineWidth=1;
   for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=H/4){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  ctx.strokeStyle='rgba(0,212,255,0.18)';ctx.lineWidth=1;
+  for(let y=0;y<H;y+=H/5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(0,212,255,0.24)';ctx.lineWidth=1.2;
   ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
   const colors={sine:'#00d4ff',tri:'#10b981',saw:'#f59e0b',sq:'#f43f5e'};
-  const fills={sine:'rgba(0,212,255,0.1)',tri:'rgba(16,185,129,0.1)',saw:'rgba(245,158,11,0.1)',sq:'rgba(244,63,94,0.1)'};
-  const sc=(H/2-12)/15,pts=W*2;
+  const fills={sine:'rgba(0,212,255,0.18)',tri:'rgba(16,185,129,0.16)',saw:'rgba(245,158,11,0.16)',sq:'rgba(244,63,94,0.16)'};
+  const visibleRange=Math.max(6,(Math.abs(off)+amp)*1.15);
+  const sc=(H/2-12)/visibleRange,pts=W*2;
   ctx.beginPath();
   for(let i=0;i<=pts;i++){
     const t=(i/pts)*3,ph=t%1;
@@ -292,7 +296,10 @@ function updateWave(){
     const px=(i/pts)*W,py=H/2-(y*amp+off)*sc;
     i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
   }
-  ctx.strokeStyle=colors[currentWave];ctx.lineWidth=2.5;ctx.stroke();
+  ctx.shadowBlur=14;
+  ctx.shadowColor=colors[currentWave];
+  ctx.strokeStyle=colors[currentWave];ctx.lineWidth=3.2;ctx.stroke();
+  ctx.shadowBlur=0;
   ctx.lineTo(W,H/2);ctx.lineTo(0,H/2);ctx.closePath();
   ctx.fillStyle=fills[currentWave];ctx.fill();
 }
