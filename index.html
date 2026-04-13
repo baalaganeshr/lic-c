@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Waveform & IC Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0e1a;--panel:#111827;--panel2:#1a2235;--border:#1e3a5f;--accent:#00d4ff;--a2:#7c3aed;--a3:#10b981;--a4:#f59e0b;--adanger:#f43f5e;--text:#e2e8f0;--muted:#64748b;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden;padding-bottom:80px;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:16px 12px 0;}
+header{text-align:center;padding:12px 0 18px;}
+header h1{font-size:clamp(1.1rem,5vw,1.6rem);font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);text-shadow:0 0 18px rgba(0,212,255,0.4);}
+header p{font-size:11px;color:var(--muted);margin-top:4px;font-family:'Share Tech Mono',monospace;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(10,14,26,0.97);border-top:1px solid var(--border);display:flex;padding:6px 8px;gap:4px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 2px;border:none;border-radius:10px;background:transparent;color:var(--muted);font-family:'Exo 2',sans-serif;font-size:10px;font-weight:600;cursor:pointer;transition:all 0.18s;text-transform:uppercase;letter-spacing:0.5px;}
+.nav-btn svg{width:20px;height:20px;stroke-width:2;fill:none;stroke:currentColor;}
+.nav-btn.active{background:rgba(0,212,255,0.12);color:var(--accent);}
+.nav-btn.active svg{stroke:var(--accent);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+.card-title{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);padding-bottom:8px;display:flex;align-items:center;gap:8px;}
+.card-title svg{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;}
+.wave-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.wave-btn{padding:12px 4px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.18s;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:5px;letter-spacing:0.5px;}
+.wave-btn svg{width:28px;height:18px;stroke-width:2;fill:none;}
+.wave-btn.active-sine{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,0.1);}
+.wave-btn.active-sine svg{stroke:var(--accent);}
+.wave-btn.active-tri{border-color:var(--a3);color:var(--a3);background:rgba(16,185,129,0.1);}
+.wave-btn.active-tri svg{stroke:var(--a3);}
+.wave-btn.active-saw{border-color:var(--a4);color:var(--a4);background:rgba(245,158,11,0.1);}
+.wave-btn.active-saw svg{stroke:var(--a4);}
+.wave-btn.active-sq{border-color:var(--adanger);color:var(--adanger);background:rgba(244,63,94,0.1);}
+.wave-btn.active-sq svg{stroke:var(--adanger);}
+canvas{width:100%;border-radius:10px;background:#060c18;border:1px solid var(--border);display:block;}
+.slider-group{margin-bottom:16px;}
+.slider-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.slider-name{font-size:13px;color:var(--muted);}
+.slider-val{font-size:14px;font-weight:700;color:var(--text);font-family:'Share Tech Mono',monospace;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;min-width:80px;text-align:center;}
+input[type=range]{width:100%;height:6px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:6px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 0 8px rgba(0,212,255,0.5);cursor:pointer;}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px;}
+@media(min-width:420px){.stats-row{grid-template-columns:repeat(4,1fr);}}
+.stat-box{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.stat-value{font-size:15px;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace;}
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.mode-btn{padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-family:'Exo 2',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.18s;text-transform:uppercase;letter-spacing:0.5px;}
+.mode-btn.active{border-color:var(--a2);color:var(--a2);background:rgba(124,58,237,0.15);}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.input-group{display:flex;flex-direction:column;gap:5px;}
+.input-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.input-group input[type=number]{width:100%;padding:12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:15px;outline:none;transition:border 0.18s;}
+.input-group input[type=number]:focus{border-color:var(--a2);}
+.calc-btn{width:100%;padding:14px;border:none;border-radius:10px;background:var(--a2);color:#fff;font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.18s;margin-top:4px;}
+.calc-btn:active{transform:scale(0.97);}
+.result-box{background:var(--panel2);border:1px solid var(--a2);border-radius:10px;padding:14px;margin-top:12px;}
+.result-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.result-item:last-child{border-bottom:none;}
+.result-item span:first-child{color:var(--muted);}
+.result-item span:last-child{color:var(--a2);font-weight:700;font-family:'Share Tech Mono',monospace;font-size:14px;}
+.info-stack{display:flex;flex-direction:column;gap:10px;}
+.info-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.info-card h3{font-size:11px;color:var(--a3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.info-card p{font-size:13px;color:var(--muted);line-height:1.65;}
+.formula{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--a3);background:rgba(16,185,129,0.08);padding:8px 12px;border-radius:7px;margin-top:8px;border:1px solid rgba(16,185,129,0.2);}
+.formula-badge{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--muted);line-height:1.8;}
+.formula-badge strong{color:var(--accent);}
+.lm317-result{background:var(--panel2);border:1px solid var(--a4);border-radius:10px;padding:16px;margin-top:12px;text-align:center;}
+.lm317-big{font-size:36px;font-weight:700;color:var(--a4);font-family:'Share Tech Mono',monospace;margin:6px 0;}
+.lm317-sub{font-size:12px;color:var(--muted);}
+.section-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+footer{text-align:center;font-size:10px;color:var(--muted);padding:16px 0;font-family:'Share Tech Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⚡ Waveform & IC Simulator</h1>
+    <p>231EC41 LIC · Unit 5 · CO5 &amp; CO6</p>
+  </header>
+
+  <!-- TAB 1: WAVEFORM -->
+  <div id="tab-wave" class="tab-content active">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M2 12 Q5 4 8 12 Q11 20 14 12 Q17 4 20 12 Q21.5 16 22 12"/></svg>
+        Waveform Generator
+      </div>
+      <div class="wave-grid">
+        <button class="wave-btn active-sine" onclick="setWave('sine',this)">
+          <svg viewBox="0 0 40 20"><path d="M0 10 Q5 0 10 10 Q15 20 20 10 Q25 0 30 10 Q35 20 40 10"/></svg>Sine
+        </button>
+        <button class="wave-btn" onclick="setWave('tri',this)">
+          <svg viewBox="0 0 40 20"><polyline points="0,10 10,2 20,18 30,2 40,10"/></svg>Triangle
+        </button>
+        <button class="wave-btn" onclick="setWave('saw',this)">
+          <svg viewBox="0 0 40 20"><polyline points="0,18 13,2 13,18 26,2 26,18 40,2"/></svg>Sawtooth
+        </button>
+        <button class="wave-btn" onclick="setWave('sq',this)">
+          <svg viewBox="0 0 40 20"><polyline points="0,16 0,4 14,4 14,16 28,16 28,4 40,4"/></svg>Square
+        </button>
+      </div>
+      <canvas id="waveCanvas" height="160"></canvas>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Period</div><div class="stat-value" id="statPeriod">—</div></div>
+        <div class="stat-box"><div class="stat-label">Vpp</div><div class="stat-value" id="statVpp">—</div></div>
+        <div class="stat-box"><div class="stat-label">RMS</div><div class="stat-value" id="statRms">—</div></div>
+        <div class="stat-box"><div class="stat-label">Type</div><div class="stat-value" id="statType">SINE</div></div>
+      </div>
+      <div class="section-label">Controls</div>
+      <div class="slider-group">
+        <div class="slider-row"><span class="slider-name">Frequency</span><span class="slider-val" id="freqVal">500 Hz</span></div>
+        <input type="range" id="freqSlider" min="10" max="2000" value="500" oninput="updateWave()"/>
+      </div>
+      <div class="slider-group">
+        <div class="slider-row"><span class="slider-name">Amplitude</span><span class="slider-val" id="ampVal">5.0 V</span></div>
+        <input type="range" id="ampSlider" min="1" max="15" value="5" step="0.5" oninput="updateWave()"/>
+      </div>
+      <div class="slider-group">
+        <div class="slider-row"><span class="slider-name">DC Offset</span><span class="slider-val" id="offsetVal">0.0 V</span></div>
+        <input type="range" id="offsetSlider" min="-5" max="5" value="0" step="0.5" oninput="updateWave()"/>
+      </div>
+      <div class="slider-group" id="dutyGroup" style="display:none">
+        <div class="slider-row"><span class="slider-name">Duty Cycle</span><span class="slider-val" id="dutyVal">50 %</span></div>
+        <input type="range" id="dutySlider" min="10" max="90" value="50" oninput="updateWave()"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: 555 TIMER -->
+  <div id="tab-timer555" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><line x1="10" y1="5" x2="10" y2="3"/><line x1="14" y1="5" x2="14" y2="3"/></svg>
+        555 Timer
+      </div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btnAstable" onclick="set555Mode('astable')">⚡ Astable</button>
+        <button class="mode-btn" id="btnMono" onclick="set555Mode('mono')">⏱ Monostable</button>
+      </div>
+      <div id="astablePanel">
+        <div class="formula-badge"><strong>f</strong> = 1.44 / ((R1 + 2×R2) × C) &nbsp;|&nbsp; <strong>Duty</strong> = (R1+R2)/(R1+2R2) × 100%</div>
+        <div class="input-row">
+          <div class="input-group"><label>R1 (kΩ)</label><input type="number" id="r1" value="10" min="1" step="1" oninput="calcAstable()"/></div>
+          <div class="input-group"><label>R2 (kΩ)</label><input type="number" id="r2" value="10" min="1" step="1" oninput="calcAstable()"/></div>
+        </div>
+        <div class="input-group" style="margin-bottom:12px"><label>C (μF)</label><input type="number" id="c1" value="0.1" min="0.001" step="0.001" oninput="calcAstable()"/></div>
+        <div class="result-box" id="astableResult"></div>
+        <canvas id="canvas555" height="140" style="margin-top:12px;"></canvas>
+      </div>
+      <div id="monoPanel" style="display:none">
+        <div class="formula-badge"><strong>tP</strong> = 1.1 × R × C &nbsp;(pulse width)</div>
+        <div class="input-row">
+          <div class="input-group"><label>R (kΩ)</label><input type="number" id="rm" value="100" min="1" step="1" oninput="calcMono()"/></div>
+          <div class="input-group"><label>C (μF)</label><input type="number" id="cm" value="10" min="0.001" step="0.001" oninput="calcMono()"/></div>
+        </div>
+        <div class="result-box" id="monoResult"></div>
+        <canvas id="canvas555mono" height="140" style="margin-top:12px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: ICL8038 -->
+  <div id="tab-icl8038" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        ICL8038 Function Generator
+      </div>
+      <div class="info-stack">
+        <div class="info-card"><h3>Overview</h3><p>Monolithic IC that simultaneously generates Sine, Square &amp; Triangle outputs. Frequency range: 0.001 Hz – 300 kHz.</p></div>
+        <div class="info-card"><h3>Frequency Formula</h3><p>Depends on external R and C at pins 4, 5, and 10.</p><div class="formula">f = 0.33 / (R × C)</div></div>
+        <div class="info-card"><h3>Output Pins</h3><p>Pin 2 → Sine &nbsp;|&nbsp; Pin 3 → Triangle &nbsp;|&nbsp; Pin 9 → Square</p></div>
+        <div class="info-card">
+          <h3>Frequency Calculator</h3>
+          <div class="input-row" style="margin-top:8px;">
+            <div class="input-group"><label>R (kΩ)</label><input type="number" id="icl_r" value="10" min="1"/></div>
+            <div class="input-group"><label>C (nF)</label><input type="number" id="icl_c" value="33" min="1"/></div>
+          </div>
+          <button class="calc-btn" style="background:var(--a3);" onclick="calcICL()">Calculate Frequency</button>
+          <div id="iclResult" style="margin-top:12px;font-family:'Share Tech Mono',monospace;color:var(--a3);font-size:22px;font-weight:700;text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: LM317 -->
+  <div id="tab-lm317" class="tab-content">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        LM317 Voltage Regulator
+      </div>
+      <div class="formula-badge"><strong>Vout</strong> = 1.25 × (1 + R2/R1) &nbsp;|&nbsp; R1 = 240Ω (fixed) &nbsp;|&nbsp; Range: 1.25V – 37V</div>
+      <div class="input-row">
+        <div class="input-group"><label>R1 (Ω)</label><input type="number" id="lm_r1" value="240" min="1" oninput="calcLM317()"/></div>
+        <div class="input-group"><label>R2 (Ω)</label><input type="number" id="lm_r2" value="2400" min="0" oninput="calcLM317()"/></div>
+      </div>
+      <div class="lm317-result" id="lm317Result">
+        <div class="lm317-sub">Output Voltage</div>
+        <div class="lm317-big" id="lm317Vout">—</div>
+        <div id="lm317Note" style="font-size:12px;margin-top:4px;"></div>
+      </div>
+      <canvas id="lmCanvas" height="220" style="margin-top:14px;"></canvas>
+    </div>
+  </div>
+
+  <footer>PSR Engineering College · 231EC41 LIC · Unit 5</footer>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-wave" onclick="switchTab('wave')">
+    <svg viewBox="0 0 24 24"><path d="M2 12 Q5 4 8 12 Q11 20 14 12 Q17 4 20 12"/></svg>Waveform
+  </button>
+  <button class="nav-btn" id="nav-timer555" onclick="switchTab('timer555')">
+    <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/><line x1="10" y1="5" x2="10" y2="3"/><line x1="14" y1="5" x2="14" y2="3"/></svg>555 Timer
+  </button>
+  <button class="nav-btn" id="nav-icl8038" onclick="switchTab('icl8038')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h4l2-4 2 8 2-4h2"/></svg>ICL8038
+  </button>
+  <button class="nav-btn" id="nav-lm317" onclick="switchTab('lm317')">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>LM317
+  </button>
+</nav>
+
+<script>
+let currentWave='sine',mode555='astable';
+
+function switchTab(name){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>{
+    if(name==='wave')updateWave();
+    if(name==='lm317'){calcLM317();drawLM317Chart();}
+    if(name==='timer555')mode555==='astable'?calcAstable():calcMono();
+  },50);
+}
+
+function setWave(type,btn){
+  currentWave=type;
+  document.querySelectorAll('.wave-btn').forEach(b=>b.className='wave-btn');
+  btn.classList.add('active-'+type);
+  document.getElementById('dutyGroup').style.display=type==='sq'?'block':'none';
+  updateWave();
+}
+
+function updateWave(){
+  const freq=+document.getElementById('freqSlider').value;
+  const amp=+document.getElementById('ampSlider').value;
+  const off=+document.getElementById('offsetSlider').value;
+  const duty=+document.getElementById('dutySlider').value/100;
+  document.getElementById('freqVal').textContent=freq+' Hz';
+  document.getElementById('ampVal').textContent=amp.toFixed(1)+' V';
+  document.getElementById('offsetVal').textContent=off.toFixed(1)+' V';
+  document.getElementById('dutyVal').textContent=Math.round(duty*100)+' %';
+  const period=1/freq*1000;
+  document.getElementById('statPeriod').textContent=period<1?(period*1000).toFixed(1)+'μs':period.toFixed(2)+'ms';
+  document.getElementById('statVpp').textContent=(amp*2).toFixed(1)+' V';
+  const rms=currentWave==='sine'?amp/Math.sqrt(2):currentWave==='tri'?amp/Math.sqrt(3):amp;
+  document.getElementById('statRms').textContent=rms.toFixed(2)+' V';
+  document.getElementById('statType').textContent=currentWave.toUpperCase();
+  const canvas=document.getElementById('waveCanvas');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr;canvas.height=160*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth,H=160;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,212,255,0.06)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=H/4){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(0,212,255,0.18)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  const colors={sine:'#00d4ff',tri:'#10b981',saw:'#f59e0b',sq:'#f43f5e'};
+  const fills={sine:'rgba(0,212,255,0.1)',tri:'rgba(16,185,129,0.1)',saw:'rgba(245,158,11,0.1)',sq:'rgba(244,63,94,0.1)'};
+  const sc=(H/2-12)/15,pts=W*2;
+  ctx.beginPath();
+  for(let i=0;i<=pts;i++){
+    const t=(i/pts)*3,ph=t%1;
+    let y;
+    if(currentWave==='sine')y=Math.sin(2*Math.PI*t);
+    else if(currentWave==='tri')y=ph<0.5?4*ph-1:3-4*ph;
+    else if(currentWave==='saw')y=2*ph-1;
+    else y=ph<duty?1:-1;
+    const px=(i/pts)*W,py=H/2-(y*amp+off)*sc;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle=colors[currentWave];ctx.lineWidth=2.5;ctx.stroke();
+  ctx.lineTo(W,H/2);ctx.lineTo(0,H/2);ctx.closePath();
+  ctx.fillStyle=fills[currentWave];ctx.fill();
+}
+
+function set555Mode(m){
+  mode555=m;
+  document.getElementById('astablePanel').style.display=m==='astable'?'block':'none';
+  document.getElementById('monoPanel').style.display=m==='mono'?'block':'none';
+  document.getElementById('btnAstable').className='mode-btn'+(m==='astable'?' active':'');
+  document.getElementById('btnMono').className='mode-btn'+(m==='mono'?' active':'');
+  setTimeout(()=>m==='astable'?calcAstable():calcMono(),30);
+}
+
+function calcAstable(){
+  const R1=+document.getElementById('r1').value*1000;
+  const R2=+document.getElementById('r2').value*1000;
+  const C=+document.getElementById('c1').value*1e-6;
+  if(!R1||!R2||!C)return;
+  const tH=0.693*(R1+R2)*C,tL=0.693*R2*C,T=tH+tL,f=1/T,dc=tH/T*100;
+  document.getElementById('astableResult').innerHTML=`
+    <div class="result-item"><span>Frequency</span><span>${f.toFixed(2)} Hz</span></div>
+    <div class="result-item"><span>Time High (tH)</span><span>${(tH*1000).toFixed(2)} ms</span></div>
+    <div class="result-item"><span>Time Low (tL)</span><span>${(tL*1000).toFixed(2)} ms</span></div>
+    <div class="result-item"><span>Period (T)</span><span>${(T*1000).toFixed(2)} ms</span></div>
+    <div class="result-item"><span>Duty Cycle</span><span>${dc.toFixed(1)} %</span></div>`;
+  draw555Astable(tH,tL);
+}
+
+function draw555Astable(tH,tL){
+  const canvas=document.getElementById('canvas555');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=(canvas.offsetWidth||320)*dpr;canvas.height=140*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth||320,H=140;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(124,58,237,0.08)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  const T=tH+tL,hY=24,lY=108;
+  ctx.beginPath();ctx.strokeStyle='#7c3aed';ctx.lineWidth=2.5;
+  let x=0;
+  for(let c=0;c<3;c++){
+    const wH=(tH/T)*(W/3),wL=(tL/T)*(W/3);
+    ctx.moveTo(x,lY);ctx.lineTo(x,hY);ctx.lineTo(x+wH,hY);ctx.lineTo(x+wH,lY);ctx.lineTo(x+wH+wL,lY);
+    x+=wH+wL;
+  }
+  ctx.stroke();
+  ctx.fillStyle='rgba(124,58,237,0.12)';x=0;
+  for(let c=0;c<3;c++){const wH=(tH/T)*(W/3),wL=(tL/T)*(W/3);ctx.fillRect(x,hY,wH,lY-hY);x+=wH+wL;}
+  ctx.fillStyle='rgba(124,58,237,0.7)';ctx.font='11px Share Tech Mono';
+  ctx.fillText('HIGH',8,hY-5);ctx.fillText('LOW',8,lY+13);
+}
+
+function calcMono(){
+  const R=+document.getElementById('rm').value*1000;
+  const C=+document.getElementById('cm').value*1e-6;
+  if(!R||!C)return;
+  const tP=1.1*R*C;
+  document.getElementById('monoResult').innerHTML=`
+    <div class="result-item"><span>Pulse Width (tP)</span><span>${(tP*1000).toFixed(2)} ms</span></div>
+    <div class="result-item"><span>R</span><span>${R/1000} kΩ</span></div>
+    <div class="result-item"><span>C</span><span>${C*1e6} μF</span></div>
+    <div class="result-item"><span>Formula</span><span>1.1 × R × C</span></div>`;
+  drawMono(tP);
+}
+
+function drawMono(tP){
+  const canvas=document.getElementById('canvas555mono');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=(canvas.offsetWidth||320)*dpr;canvas.height=140*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth||320,H=140;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(124,58,237,0.08)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  const hY=24,lY=108,gap=W*0.1,pw=W*0.38;
+  ctx.beginPath();ctx.strokeStyle='#7c3aed';ctx.lineWidth=2.5;
+  ctx.moveTo(0,lY);ctx.lineTo(gap,lY);ctx.lineTo(gap,hY);ctx.lineTo(gap+pw,hY);ctx.lineTo(gap+pw,lY);ctx.lineTo(W,lY);
+  ctx.stroke();
+  ctx.fillStyle='rgba(124,58,237,0.15)';ctx.fillRect(gap,hY,pw,lY-hY);
+  ctx.fillStyle='rgba(124,58,237,0.7)';ctx.font='11px Share Tech Mono';
+  ctx.fillText('tP = 1.1RC',gap+6,hY-5);
+  ctx.fillText('← pulse width →',gap+6,lY+13);
+}
+
+function calcICL(){
+  const R=+document.getElementById('icl_r').value*1000;
+  const C=+document.getElementById('icl_c').value*1e-9;
+  const f=0.33/(R*C);
+  document.getElementById('iclResult').textContent=f>=1000?'f = '+(f/1000).toFixed(2)+' kHz':'f = '+f.toFixed(2)+' Hz';
+}
+
+function calcLM317(){
+  const R1=+document.getElementById('lm_r1').value||240;
+  const R2=+document.getElementById('lm_r2').value||0;
+  const Vout=1.25*(1+R2/R1);
+  document.getElementById('lm317Vout').textContent=Vout.toFixed(2)+' V';
+  const note=document.getElementById('lm317Note');
+  if(Vout<1.25){note.textContent='⚠ Below minimum (1.25V)';note.style.color='#f43f5e';}
+  else if(Vout>37){note.textContent='⚠ Above maximum (37V)';note.style.color='#f43f5e';}
+  else{note.textContent='✓ Valid output range';note.style.color='var(--a3)';}
+  drawLM317Chart();
+}
+
+function drawLM317Chart(){
+  const R1=+document.getElementById('lm_r1').value||240;
+  const R2=+document.getElementById('lm_r2').value||2400;
+  const canvas=document.getElementById('lmCanvas');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=(canvas.offsetWidth||320)*dpr;canvas.height=220*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth||320,H=220,pad=36,maxR2=10000,maxV=40;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(245,158,11,0.08)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=W/6){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=H/5){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.beginPath();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;
+  for(let i=0;i<=200;i++){
+    const r2=(i/200)*maxR2,v=1.25*(1+r2/R1);
+    const px=pad+(i/200)*(W-2*pad),py=H-pad-(Math.min(v,maxV)/maxV)*(H-2*pad);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+  ctx.fillStyle='rgba(245,158,11,0.6)';ctx.font='10px Share Tech Mono';
+  ctx.fillText('0',pad-18,H-pad+12);ctx.fillText('10kΩ',W-pad-28,H-pad+12);
+  ctx.fillText('40V',pad-28,pad+4);ctx.fillText('R2 →',W/2-14,H-4);
+  ctx.save();ctx.translate(12,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Vout',0,0);ctx.restore();
+  const vDot=1.25*(1+R2/R1);
+  const px=pad+(Math.min(R2,maxR2)/maxR2)*(W-2*pad);
+  const py=H-pad-(Math.min(vDot,maxV)/maxV)*(H-2*pad);
+  ctx.beginPath();ctx.arc(px,py,7,0,2*Math.PI);ctx.fillStyle='#f59e0b';ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 11px Share Tech Mono';
+  ctx.fillText(vDot.toFixed(1)+'V',px+10,py-4);
+}
+
+window.addEventListener('load',()=>{updateWave();calcAstable();calcLM317();});
+window.addEventListener('resize',()=>{
+  const a=document.querySelector('.tab-content.active');
+  if(a.id==='tab-wave')updateWave();
+  if(a.id==='tab-lm317')drawLM317Chart();
+  if(a.id==='tab-timer555')mode555==='astable'?calcAstable():calcMono();
+});
+</script>
+</body>
+</html>
